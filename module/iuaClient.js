@@ -34,7 +34,7 @@ const signatureValid = function(token) {
 const isValid = function(token, client_id, issuer) {
 
   if (!(token.iss === issuer)) {
-    console.log('Error: Unexpected issuer ', token.issuer)
+    console.log('Error: Unexpected issuer. Expected %s, got %s.', issuer, token.iss)
     return false
   }
 
