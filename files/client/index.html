@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUA - rough and ready</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+  <nav>
+    <div class="nav-wrapper indigo lighten-2">
+      <a href="http://localhost:9000" class="brand-logo">&nbsp;IUA Client</a>
+      <a href="#" data-target="mobile-demo" class="sidenav-trigger">
+        <i class="material-icons">menu</i>
+      </a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="http://localhost:9000">IUA Client</a></li>
+        <li><a href="http://localhost:9003">OIDC Provider</a></li>
+        <li><a href="http://localhost:9001">IUA Auth Server </a></li>
+        <li><a href="http://localhost:9002">IUA Resource Server</a></li>
+      </ul>
+    </div>
+  </nav>
+  <ul class="sidenav" id="mobile-demo">
+    <li><a href="http://localhost:9000">IUA Client</a></li>
+    <li><a href="http://localhost:9003">OIDC Provider</a></li>
+    <li><a href="http://localhost:9001">IUA Auth Server </a></li>
+    <li><a href="http://localhost:9002">IUA Resource Server</a></li>
+  </ul>
+  <div class="container">
+    <div class="row"></div>
+    <div class="row">
+      <div class="col s12 m10 offset-m1">
+        <ul class="tabs">
+          <li class="tab col s3"><a class="active" href="#iua"><b>IUA</b></a></li>
+          <li class="tab col s3"><a class="active" href="#oidc"><b>OpenID Connect</b></a></li>
+        </ul>
+      </div>
+      <div id="iua" class="col s12">
+        <div class="row">
+          <div class="col s12 m10 offset-m1">
+            <div class="card indigo lighten-2">
+              <div class="card-content white-text">
+                <span class="card-title">IUA:</span>
+                <p>
+                  Authenticate and authorize via the IUA server at the. The IUA
+                  server acts as the OpenID Connect with it's client_id and
+                  client_secret. The authenticated session is managed by
+                  the OpenID Connect provider and is identified via a browser cookie.
+                  The OpenID Connect provider supports single sign-on and
+                  an authenticated session of the browser may be used by the OpenID
+                  Connect provider for authentication.
+                </p>
+                <h5> Authorization server data:</h5>
+                <p>
+                <ul>
+                  <li><b>issuer:</b> <code><%- iuaServer.issuer %></code></li>
+                  <li><b>authorizationEndpoint:</b> <code><%- iuaServer.authorizationEndpoint %></code></li>
+                  <li><b>tokenEndpoint:</b> <code><%- iuaServer.tokenEndpoint %></code></li>
+                </ul>
+                </p>
+                <h5> Client registration data:</h5>
+                <p>
+                <ul>
+                  <li><b>client_id:</b> <code><%- iuaClient.client_id %></code></li>
+                  <li><b>client_secret:</b> <code><%- iuaClient.client_secret %></code></li>
+                  <li><b>scope:</b> <code><%- iuaClient.scope %></code></li>
+                  <li><b>redirect_uri:</b> <code><%- iuaClient.redirect_uris %></code></li>
+                </ul>
+                </p>
+              </div>
+              <div class="card-action">
+                <a class="nav-link" href="http://localhost:9001/iua_authenticate">authenticate</a>
+                <a class="nav-link" href="/iua_authorize">authorize</a>
+                <a class="nav-link" href="/iua_fetch_resource">fetch resource</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="oidc" class="col s12">
+        <div class="row">
+          <div class="col s12 m10 offset-m1">
+            <div class="card indigo lighten-2">
+              <div class="card-content white-text">
+                <span class="card-title">OpenID Connect:</span>
+                <p>
+                  The client application authenticates the user directly at the
+                  OpenID Connect provider and uses SSO for IUA. The authenticated
+                  client session is managed by the OpenID Connect provider and
+                  is identified via a cookie in the user agent.
+                </p>
+                <h5> OpenID Connect provider data:</h5>
+                <p>
+                <ul>
+                  <li><b>issuer:</b> <code><%- oidcServer.issuer %></code></li>
+                  <li><b>authenticationEndpoint:</b> <code><%- oidcServer.authenticationEndpoint %></code></li>
+                  <li><b>authorizationEndpoint:</b> <code><%- oidcServer.authorizationEndpoint %></code></li>
+                  <li><b>tokenEndpoint:</b> <code><%- oidcServer.tokenEndpoint %></code></li>
+                </ul>
+                </p>
+                <p>
+                <h5> Client registration data:</h5>
+                <p>
+                <ul>
+                  <li><b>client_id:</b> <code><%- oidcClient.client_id %></code></li>
+                  <li><b>client_secret:</b> <code><%- oidcClient.client_secret %></code></li>
+                  <li><b>scope:</b> <code><%- oidcClient.scope %></code></li>
+                  <li><b>redirect_uri:</b> <code><%- oidcClient.redirect_uris %></code></li>
+                </ul>
+                </p>
+                </p>
+              </div>
+              <div class="card-action">
+                <a href="/oidc_authenticate">authenticate</a>
+                <a href="/oidc_info">session data</a>
+                <a href="/oidc_userinfo">user info</a>
+                <a href="/oidc_logout_request">logout</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      M.AutoInit();
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUA - rough and ready</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+  <nav>
+    <div class="nav-wrapper green lighten-1">
+      <a href="http://localhost:9003" class="brand-logo">&nbsp;OIDC Provider</a>
+      <a href="#" data-target="mobile-demo" class="sidenav-trigger">
+        <i class="material-icons">menu</i>
+      </a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="http://localhost:9000">IUA Client</a></li>
+        <li><a href="http://localhost:9003">OIDC Provider</a></li>
+        <li><a href="http://localhost:9001">IUA Auth Server </a></li>
+        <li><a href="http://localhost:9002">IUA Resource Server</a></li>
+      </ul>
+    </div>
+  </nav>
+  <ul class="sidenav" id="mobile-demo">
+    <li><a href="http://localhost:9000">IUA Client</a></li>
+    <li><a href="http://localhost:9003">OIDC Provider</a></li>
+    <li><a href="http://localhost:9001">IUA Auth Server </a></li>
+    <li><a href="http://localhost:9002">IUA Resource Server</a></li>
+  </ul>
+  <div class="container">
+    <div class="row">
+      <div class="col s12 m12">
+        <div class="card green lighten-2">
+          <div class="card-content">
+            <span class="card-title">Server metadata:</span>
+            <ul>
+              <li><b>authentication URL:</b> <code><%- authServer.authenticationURL %></code></li>
+              <li><b>authorization URL:</b> <code><%- authServer.authorizationURL %></code></li>
+              <li><b>token URL:</b> <code><%- authServer.tokenURL %></code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col s12 m12">
+        <div class="card green lighten-2">
+          <div class="card-content">
+            <span class="card-title">Registered clients:</span>
+            <% _.each(clients, function(client) { %>
+            <ul>
+              <li><b>client id:</b> <code><%- client.clientId %></code></li>
+              <li><b>client secret:</b> <code><%- client.clientSecret %></code></li>
+              <li><b>scope:</b> <code><%- client.scope %></code></li>
+              <li><b>redirect uri:</b> <code><%- client.redirectUris %></code></li>
+              <li><b>description:</b> <code><%- client.description %></code></li>
+            </ul>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('.sidenav');
+      var instances = M.Sidenav.init(elems, {});
+    });
+  </script>
+</body>
+</html>

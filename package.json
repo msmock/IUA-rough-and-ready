@@ -1,0 +1,18 @@
+{
+   "dependencies": {
+      "axios": "^0.25.0",
+      "body-parser": "^1.19.1",
+      "connect-mongodb-session": "^3.1.1",
+      "consolidate": "^0.16.0",
+      "cors": "^2.8.5",
+      "express": "^4.17.2",
+      "express-session": "^1.17.2",
+      "jsrsasign": "^10.5.3",
+      "mongodb": "^4.4.0",
+      "mongodb-memory-server": "^8.4.0",
+      "randomstring": "^1.2.2",
+      "request": "^2.58.0",
+      "underscore": "^1.13.2",
+      "underscore.string": "^3.3.6"
+   }
+}

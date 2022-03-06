@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUA - rough and ready</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+  <nav>
+    <div class="nav-wrapper green lighten-1">
+      <a href="http://localhost:9003" class="brand-logo">&nbsp;OIDC Provider</a>
+      <a href="#" data-target="mobile-demo" class="sidenav-trigger">
+        <i class="material-icons">menu</i>
+      </a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="http://localhost:9000">IUA Client</a></li>
+        <li><a href="http://localhost:9003">OIDC Provider</a></li>
+        <li><a href="http://localhost:9001">IUA Auth Server </a></li>
+        <li><a href="http://localhost:9002">IUA Resource Server</a></li>
+      </ul>
+    </div>
+  </nav>
+  <ul class="sidenav" id="mobile-demo">
+    <li><a href="http://localhost:9000">IUA Client</a></li>
+    <li><a href="http://localhost:9003">OIDC Provider</a></li>
+    <li><a href="http://localhost:9001">IUA Auth Server </a></li>
+    <li><a href="http://localhost:9002">IUA Resource Server</a></li>
+  </ul>
+  <br>&nbsp;</br>
+  <div class="container">
+    <div class="row">
+      <div class="col s10 offset-s1 m8 offset-m2 l6 offset-l3">
+        <b>Approve this client to access OIDC user info data?</b>
+        <br>&nbsp;</br>
+        <p><b>ID:</b> <code><%- client.clientId %></code></p>
+        <p><b>Description:</b> <code><%- client.description%></code></p>
+        <form class="form" action="/oidc_approve" method="POST">
+          <% if (scope) { %>
+          <p>The client is requesting access with the following scopes:</p>
+          <ul>
+            <% _.each(scope, function(s) { %>
+            <p>
+              <label>
+                <input type="checkbox" class="filled-in orange" checked="checked" name="scope_<%- s %>" id="scope_<%- s %>" />
+                <span><%- s %></span>
+              </label>
+            </p>
+            <% }); %>
+          </ul>
+          <% } %>
+          <input type="submit" class="btn-small green" name="approve" value="Approve">
+          <input type="submit" class="btn-small red" name="deny" value="Deny">
+          <input type="hidden" name="authQuery" value="<%- authQuery %>">
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('.sidenav');
+      var instances = M.Sidenav.init(elems, {});
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IUA - rough and ready</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+  <nav>
+    <div class="nav-wrapper orange lighten-1">
+      <a href="#!" class="brand-logo">&nbsp;Resource Server</a>
+      <a href="#" data-target="mobile-demo" class="sidenav-trigger">
+        <i class="material-icons">menu</i>
+      </a>
+      <ul class="right hide-on-med-and-down">
+        <li><a href="http://localhost:9000">IUA Client</a></li>
+        <li><a href="http://localhost:9003">OIDC Provider</a></li>
+        <li><a href="http://localhost:9001">IUA Auth Server </a></li>
+        <li><a href="http://localhost:9002">IUA Resource Server</a></li>
+      </ul>
+    </div>
+  </nav>
+  <ul class="sidenav" id="mobile-demo">
+    <li><a href="http://localhost:9000">IUA Client</a></li>
+    <li><a href="http://localhost:9003">OIDC Provider</a></li>
+    <li><a href="http://localhost:9001">IUA Auth Server </a></li>
+    <li><a href="http://localhost:9002">IUA Resource Server</a></li>
+  </ul>
+  <div class="container">
+    <div class="row">
+      <div class="col s12 m12">
+        <div class="card orange lighten-2">
+          <div class="card-content white-text">
+            <span class="card-title">Resource Server:</span>
+            To access the resource, send a <code>POST</code> request to
+            <code>http://localhost:9002/resource</code> and include a valid IUA JWT token.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var elems = document.querySelectorAll('.sidenav');
+      var instances = M.Sidenav.init(elems, {});
+    });
+  </script>
+</body>
+
+</html>
