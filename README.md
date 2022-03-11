@@ -17,10 +17,8 @@ A cockpit is provided at localhost:9000. You may use alice or bob as user with n
 
 ## Project Dependencies
 
-### jsrsasign
-Opensource JavaScript cryptographic library supports RSA/RSAPSS/ECDSA/DSA signing/validation, ASN.1, PKCS#1/5/8 private/public key, X.509 certificate, CRL, OCSP, CMS SignedData, TimeStamp and CAdES and JSON Web Signature(JWS)/Token(JWT)/Key(JWK)
-
-see https://kjur.github.io/jsrsasign/
+### node-jose
+JavaScript cryptographic library.
 
 ### querystring
 Node module providing utilities for parsing and formatting URL query strings. The
