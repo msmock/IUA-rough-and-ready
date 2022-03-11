@@ -4,15 +4,20 @@ const bodyParser = require('body-parser')
 const randomstring = require('randomstring')
 const cons = require('consolidate')
 const querystring = require('querystring')
-const jose = require('jsrsasign')
 const axios = require('axios')
 const session = require('express-session')
 const __ = require('underscore')
 __.string = require('underscore.string')
 
+const jose = require('node-jose')
+const fs = require('fs')
+
 const oidc = require('./module/oidcClient')
 
 const app = express()
+
+// load the private key for signing
+const privateKey = fs.readFileSync('./keys/iua/private-key.pem')
 
 // container to cache request data from authorization to token request
 const iuaCache = {}
@@ -308,31 +313,8 @@ app.post('/iua_approve', function(req, res) {
   return
 })
 
-// JWS signature
-const sign = function(jwsPayload) {
-
-  const header = {
-    'typ': 'JWT',
-    'alg': 'RS256',
-    'kid': 'authserver'
-  }
-
-  // add a JWS signature to id_token
-  const rsaKey = {
-    'alg': 'RS256',
-    'd': 'ZXFizvaQ0RzWRbMExStaS_-yVnjtSQ9YslYQF1kkuIoTwFuiEQ2OywBfuyXhTvVQxIiJqPNnUyZR6kXAhyj__wS_Px1EH8zv7BHVt1N5TjJGlubt1dhAFCZQmgz0D-PfmATdf6KLL4HIijGrE8iYOPYIPF_FL8ddaxx5rsziRRnkRMX_fIHxuSQVCe401hSS3QBZOgwVdWEb1JuODT7KUk7xPpMTw5RYCeUoCYTRQ_KO8_NQMURi3GLvbgQGQgk7fmDcug3MwutmWbpe58GoSCkmExUS0U-KEkHtFiC8L6fN2jXh1whPeRCa9eoIK8nsIY05gnLKxXTn5-aPQzSy6Q',
-    'e': 'AQAB',
-    'n': 'p8eP5gL1H_H9UNzCuQS-vNRVz3NWxZTHYk1tG9VpkfFjWNKG3MFTNZJ1l5g_COMm2_2i_YhQNH8MJ_nQ4exKMXrWJB4tyVZohovUxfw-eLgu1XQ8oYcVYW8ym6Um-BkqwwWL6CXZ70X81YyIMrnsGTyTV6M8gBPun8g2L8KbDbXR1lDfOOWiZ2ss1CRLrmNM-GRp3Gj-ECG7_3Nx9n_s5to2ZtwJ1GS1maGjrSZ9GRAYLrHhndrL_8ie_9DS2T-ML7QNQtNkg2RvLv4f0dpjRYI23djxVtAylYK4oiT_uEMgSkc4dxwKwGuBxSO0g9JOobgfy0--FUHHYtRi0dOFZw',
-    'kty': 'RSA',
-    'kid': 'authserver'
-  }
-
-  let privateKey = jose.KEYUTIL.getKey(rsaKey)
-  return jose.jws.JWS.sign('RS256', JSON.stringify(header), jwsPayload, privateKey)
-}
-
 // generate the JWT access token
-const generateTokens = function(req, res, clientId, user, scope) {
+function generateTokens(req, res, clientId, user, scope) {
 
   console.log('/generateTokens ...')
 
@@ -374,25 +356,12 @@ const generateTokens = function(req, res, clientId, user, scope) {
   console.log('IUA Access token payload is:')
   console.log(jwsTokenPayload)
 
-  const iuaToken = sign(JSON.stringify(jwsTokenPayload))
-
-  let cscope = scope.join(' ')
-
-  console.log('Issuing iua access token with scope = %s', cscope)
-
-  const token_response = {
-    access_token: iuaToken,
-    token_type: 'Bearer',
-    scope: cscope
-  }
-
+  return jwsTokenPayload
   console.log('/generateTokens done.')
-
-  return token_response
 }
 
 // called by the client application via backchannel.
-app.post('/iua_token', function(req, res) {
+app.post('/iua_token', async (req, res) => {
 
   console.log('/iua_token ...')
 
@@ -483,7 +452,33 @@ app.post('/iua_token', function(req, res) {
   let user = sessionData.user
 
   // no error, thus
-  const token_response = generateTokens(req, res, clientId, user, sessionData.scope)
+  const tokenPayload = generateTokens(req, res, clientId, user, sessionData.scope)
+
+  // read private key and sign. This creates the header as well
+  let key = await jose.JWK.asKey(privateKey, "pem")
+
+  // format: flattened or compact
+  let format = {
+    format: 'compact'
+  }
+
+  let payload = JSON.stringify(tokenPayload)
+
+  let iuaToken = await jose.JWS.createSign(format, key).update(payload).final()
+
+  console.log('Signed message is:')
+  console.log(iuaToken)
+
+  let cscope = sessionData.scope.join(' ')
+
+  console.log('Issuing iua access token with scope = %s', cscope)
+
+  const token_response = {
+    access_token: iuaToken,
+    token_type: 'Bearer',
+    scope: cscope
+  }
+
   res.status(200).json(token_response)
   console.log('Issued iua access token for authorization code %s', req.body.code)
   console.log('/iua_token done.')

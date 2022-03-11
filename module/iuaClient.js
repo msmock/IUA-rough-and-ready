@@ -4,30 +4,30 @@ const url = require("url")
 const querystring = require('querystring')
 const cons = require('consolidate')
 const randomstring = require("randomstring")
-const jose = require('jsrsasign')
 const axios = require('axios')
 const session = require('express-session')
 const __ = require('underscore')
 __.string = require('underscore.string')
 
+const jose = require('node-jose')
+const fs = require('fs')
 
-const getJWSPayload = function(token) {
-  return token ? jose.jws.JWS.parse(token).payloadObj : null
-}
+// load the public key of the OIDC provider signature verification
+const publicKey = fs.readFileSync('./keys/iua/public-key.pem')
 
-// check the token signature with the public key of the IUA Server
-const signatureValid = function(token) {
+// verify signature: 'no key found' error means the signature is invalid.
+async function signatureValid(token) {
+  
+  console.log('signatureValid ...')
 
-  const rsaKey = {
-    "alg": "RS256",
-    "e": "AQAB",
-    "n": "p8eP5gL1H_H9UNzCuQS-vNRVz3NWxZTHYk1tG9VpkfFjWNKG3MFTNZJ1l5g_COMm2_2i_YhQNH8MJ_nQ4exKMXrWJB4tyVZohovUxfw-eLgu1XQ8oYcVYW8ym6Um-BkqwwWL6CXZ70X81YyIMrnsGTyTV6M8gBPun8g2L8KbDbXR1lDfOOWiZ2ss1CRLrmNM-GRp3Gj-ECG7_3Nx9n_s5to2ZtwJ1GS1maGjrSZ9GRAYLrHhndrL_8ie_9DS2T-ML7QNQtNkg2RvLv4f0dpjRYI23djxVtAylYK4oiT_uEMgSkc4dxwKwGuBxSO0g9JOobgfy0--FUHHYtRi0dOFZw",
-    "kty": "RSA",
-    "kid": "authserver"
-  }
+  let key = await jose.JWK.asKey(publicKey, "pem")
+  let result = await jose.JWS.createVerify(key).verify(token)
 
-  const publicKey = jose.KEYUTIL.getKey(rsaKey)
-  return jose.jws.JWS.verify(token, publicKey, ['RS256'])
+  console.log('verify: Signed message payload is:')
+  console.log(result.payload.toString())
+
+  return JSON.parse(result.payload.toString())
+  console.log('signatureValid done.')
 }
 
 // validate the iua token
@@ -73,7 +73,7 @@ const serverData = function() {
 
 // the export declaration
 module.exports = {
-  getJWSPayload,
+  // getJWSPayload,
   signatureValid,
   isValid,
   serverData

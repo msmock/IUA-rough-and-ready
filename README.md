@@ -3,6 +3,9 @@ A node project with IUA authentciation client, OpenID Connect Provider, IUA Auth
 Server and a Resource Server, all JavaScript from scratch with mininal dependencies for
 educational and testing purposes.
 
+The project uses public and private keys in pem format for signing and signature validation.
+To run the apps these certifcates must be generated and stored to folder keys.  
+
 To test copy the code and run npm install to resolve the dependencies. Then run your
 terminal and:
 - node client,
@@ -40,4 +43,4 @@ Asynchronous http call library
 In memory mongodb
 
 ### connect-mongodb-session
-Driver to use a mongo db with express session. 
+Driver to use a mongo db with express session.

@@ -4,12 +4,16 @@ const url = require("url")
 const querystring = require('querystring')
 const cons = require('consolidate')
 const randomstring = require("randomstring")
-const jose = require('jsrsasign')
 const axios = require('axios')
 const session = require('express-session')
 const __ = require('underscore')
 __.string = require('underscore.string')
 
+const jose = require('node-jose')
+const fs = require('fs')
+
+// load the public key of the OIDC provider signature verification
+const publicKey = fs.readFileSync('./keys/oidc/public-key.pem')
 
 // helper function for token display
 blockFormat = function(s) {
@@ -23,30 +27,20 @@ blockFormat = function(s) {
   return blocked.join('')
 }
 
-const getJWSPayload = function(token) {
-  return token ? jose.jws.JWS.parse(token).payloadObj : null
-}
-
-// check the token signature with the public key of the OIDC Provider
-const signatureValid = function(token) {
-
-  const rsaKey = {
-    "alg": "RS256",
-    "e": "AQAB",
-    "n": "p8eP5gL1H_H9UNzCuQS-vNRVz3NWxZTHYk1tG9VpkfFjWNKG3MFTNZJ1l5g_COMm2_2i_YhQNH8MJ_nQ4exKMXrWJB4tyVZohovUxfw-eLgu1XQ8oYcVYW8ym6Um-BkqwwWL6CXZ70X81YyIMrnsGTyTV6M8gBPun8g2L8KbDbXR1lDfOOWiZ2ss1CRLrmNM-GRp3Gj-ECG7_3Nx9n_s5to2ZtwJ1GS1maGjrSZ9GRAYLrHhndrL_8ie_9DS2T-ML7QNQtNkg2RvLv4f0dpjRYI23djxVtAylYK4oiT_uEMgSkc4dxwKwGuBxSO0g9JOobgfy0--FUHHYtRi0dOFZw",
-    "kty": "RSA",
-    "kid": "authserver"
-  }
-
-  const publicKey = jose.KEYUTIL.getKey(rsaKey)
-  return jose.jws.JWS.verify(token, publicKey, ['RS256'])
+// verify signature: 'no key found' error means the signature is invalid.
+async function signatureValid(token) {
+  let key = await jose.JWK.asKey(publicKey, "pem")
+  let result = await jose.JWS.createVerify(key).verify(token)
+  console.log('verify: Signed message payload is:')
+  console.log(result.payload.toString())
+  return JSON.parse(result.payload.toString())
 }
 
 // verify the OIDC token
 const isValid = function(token, client_id, issuer) {
 
   if (!(token.iss === issuer)) {
-    console.log('Error: Unexpected issuer ', token.issuer)
+    console.log('Error: Unexpected issuer. Got %s, expected %s', token.iss, issuer)
     return false
   }
 
@@ -95,7 +89,7 @@ const Info = function(req, res) {
     res.render('oidc_info', {
       access_token: req.session.oidc.access_token,
       id_token: blockFormat(req.session.oidc.id_token),
-      payload: getJWSPayload(req.session.oidc.id_token),
+      payload: signatureValid(req.session.oidc.id_token),
       scope: req.session.oidc.scope
     })
     console.log('/oidc_info done.')
@@ -227,7 +221,7 @@ const Authenticate = function(req, res, oidcClient) {
 
 // called from OIDC Provider with authorization token. Exchanges the
 // authorization token to the access token by calling the OIDC Provider tokenURL
-const Callback = function(req, res, oidcClient) {
+async function Callback(req, res, oidcClient) {
 
   console.log("/Callback ...")
 
@@ -263,64 +257,47 @@ const Callback = function(req, res, oidcClient) {
   axios.defaults.headers.post['Content-Type'] = headers.contentType
   axios.defaults.headers.common['Authorization'] = headers.authorization
 
-  axios.post(serverData().tokenURL, {
+  let response = await axios.post(serverData().tokenURL, {
+    grant_type: 'authorization_code',
+    code: code,
+    code_verifier: oidc_session_data.code_verifier,
+    redirect_uri: oidc_session_data.request.redirect_uri
+  })
 
-      grant_type: 'authorization_code',
-      code: code,
-      code_verifier: oidc_session_data.code_verifier,
-      redirect_uri: oidc_session_data.request.redirect_uri
+  console.log('received response data:')
+  console.log(response.data)
 
-    }).then(function(response) {
+  // access token
+  req.session.oidc = {
+    access_token: response.data.access_token,
+    refresh_token: response.data.refresh_token,
+    scope: response.data.scope,
+    id_token: response.data.id_token
+  }
 
-      console.log('received response data:')
-      console.log(response.data)
+  const payload = await signatureValid(req.session.oidc.id_token)
 
-      // access token
-      req.session.oidc = {
-        access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token,
-        scope: response.data.scope,
-        id_token: response.data.id_token
-      }
+  console.log('/Callback: payload is ')
+  console.log(payload);
 
-      if (!signatureValid(req.session.oidc.id_token)) {
-        console.log('Error: Invalid signature of token.')
-        res.render('error', {
-          error: 'Invalid signature of token'
-        })
-        console.log("/Callback done.")
-        return
-      }
-
-      console.log('Signature validated.')
-      const payload = getJWSPayload(req.session.oidc.id_token)
-
-      if (!isValid(payload, oidcClient.clientId, serverData().issuer)) {
-        console.log('Error: Invalid token data.')
-        res.render('error', {
-          error: 'Invalid token data'
-        })
-        console.log("/Callback done.")
-        return
-      }
-      // return page to display the OpenID Connect session data
-      res.render('oidc_info', {
-        access_token: req.session.oidc.access_token,
-        id_token: blockFormat(req.session.oidc.id_token),
-        payload: payload,
-        scope: req.session.oidc.scope
-      })
-
-      console.log("/Callback done.")
+  if (!isValid(payload, oidcClient.clientId, serverData().issuer)) {
+    console.log('Error: Invalid token data.')
+    res.render('error', {
+      error: 'Invalid token data'
     })
-    .catch(function(error) {
-      console.log(error)
-      res.render('error', {
-        error: error
-      })
-      console.log("/Callback done.")
-      return
-    })
+    console.log("/Callback done.")
+    return
+  }
+  // return page to display the OpenID Connect session data
+  res.render('oidc_info', {
+    access_token: req.session.oidc.access_token,
+    id_token: blockFormat(req.session.oidc.id_token),
+    payload: payload,
+    scope: req.session.oidc.scope
+  })
+
+  console.log("/Callback done.")
+
 }
 
 // the export declaration

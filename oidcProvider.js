@@ -6,16 +6,22 @@ const querystring = require('querystring')
 const cons = require('consolidate')
 const __ = require('underscore')
 __.string = require('underscore.string')
-const jose = require('jsrsasign')
 const session = require('express-session')
 const axios = require('axios')
 
 const mongo = require('mongodb-memory-server')
-var mongoClient = require('mongodb').MongoClient
+const mongoClient = require('mongodb').MongoClient
+
+const jose = require('node-jose')
+const fs = require('fs')
 
 const app = express()
 
-//
+// load the private key for signing
+const privateKey = fs.readFileSync('./keys/oidc/private-key.pem')
+const publicKey = fs.readFileSync('./keys/oidc/public-key.pem')
+
+// initialize mongodb
 const mongoOptions = {
   instance: {
     port: 27017,
@@ -146,11 +152,6 @@ const findUserBySub = function(sub) {
   return __.find(userInfo, function(user, key) {
     return user.sub === sub
   })
-}
-
-// deserialize the JWS token and return the payload
-var getJWSPayload = function(token) {
-  return token ? jose.jws.JWS.parse(token).payloadObj : null
 }
 
 /**
@@ -400,115 +401,11 @@ app.post('/oidc_approve', function(req, res) {
   return
 })
 
-// JWS signature
-const sign = function(jwsPayload) {
-
-  const header = {
-    'typ': 'JWT',
-    'alg': 'RS256',
-    'kid': 'authserver'
-  }
-
-  // add a JWS signature to id_token
-  const rsaKey = {
-    'alg': 'RS256',
-    'd': 'ZXFizvaQ0RzWRbMExStaS_-yVnjtSQ9YslYQF1kkuIoTwFuiEQ2OywBfuyXhTvVQxIiJqPNnUyZR6kXAhyj__wS_Px1EH8zv7BHVt1N5TjJGlubt1dhAFCZQmgz0D-PfmATdf6KLL4HIijGrE8iYOPYIPF_FL8ddaxx5rsziRRnkRMX_fIHxuSQVCe401hSS3QBZOgwVdWEb1JuODT7KUk7xPpMTw5RYCeUoCYTRQ_KO8_NQMURi3GLvbgQGQgk7fmDcug3MwutmWbpe58GoSCkmExUS0U-KEkHtFiC8L6fN2jXh1whPeRCa9eoIK8nsIY05gnLKxXTn5-aPQzSy6Q',
-    'e': 'AQAB',
-    'n': 'p8eP5gL1H_H9UNzCuQS-vNRVz3NWxZTHYk1tG9VpkfFjWNKG3MFTNZJ1l5g_COMm2_2i_YhQNH8MJ_nQ4exKMXrWJB4tyVZohovUxfw-eLgu1XQ8oYcVYW8ym6Um-BkqwwWL6CXZ70X81YyIMrnsGTyTV6M8gBPun8g2L8KbDbXR1lDfOOWiZ2ss1CRLrmNM-GRp3Gj-ECG7_3Nx9n_s5to2ZtwJ1GS1maGjrSZ9GRAYLrHhndrL_8ie_9DS2T-ML7QNQtNkg2RvLv4f0dpjRYI23djxVtAylYK4oiT_uEMgSkc4dxwKwGuBxSO0g9JOobgfy0--FUHHYtRi0dOFZw',
-    'kty': 'RSA',
-    'kid': 'authserver'
-  }
-
-  let privateKey = jose.KEYUTIL.getKey(rsaKey)
-  return jose.jws.JWS.sign('RS256', JSON.stringify(header), jwsPayload, privateKey)
-}
-
-/**
- * generate the JWT access token
- **/
-const generateTokens = function(clientId, userId, scope) {
-
-  const idTokenPayload = {
-    iss: 'http://localhost:9003/',
-    sub: userId,
-    aud: clientId,
-    jti: randomstring.generate(10),
-    scope: scope,
-    exp: Math.floor(Date.now() / 1000) + (5 * 60),
-    iat: Math.floor(Date.now() / 1000)
-  }
-
-  console.log('oidc id token payload is:')
-  console.log(idTokenPayload)
-
-  const payloadAsString = JSON.stringify(idTokenPayload)
-  const idToken = sign(payloadAsString)
-
-  const access_token = randomstring.generate(10)
-
-  // store token to mongo db
-  mongoClient.connect('mongodb://127.0.0.1:27017/', function(err, db) {
-
-    if (err)
-      throw err
-
-    let dbo = db.db(mongoOptions.instance.dbName)
-
-    dbo.collection('tokens').insertOne({
-        subject: userId,
-        client_id: clientId,
-        access_token: access_token,
-        id_token: idTokenPayload
-      },
-      function(err, result) {
-        if (err)
-          throw err
-        console.log(result)
-        db.close()
-      })
-  })
-
-  console.log('Issuing access token: %s', access_token)
-  console.log('and scope: %s', scope)
-
-  const token_response = {
-    access_token: access_token,
-    token_type: 'Bearer',
-    scope: scope,
-    id_token: idToken
-  }
-
-  return token_response
-}
-
-/**
- * generate the JWT logout token
- **/
-const generateLogoutToken = function(clientId, userId) {
-
-  const token = {
-    iss: 'http://localhost:9003/',
-    sub: userId,
-    aud: clientId,
-    iat: Math.floor(Date.now() / 1000),
-    jti: randomstring.generate(10),
-    events: {
-      'http://schemas.openid.net/event/backchannel-logout': {}
-    }
-  }
-  return token
-}
-
-/**
- * called by the authorization client via backchannel.
- **/
-app.post('/oidc_token', function(req, res) {
+// called by the authorization client via backchannel.
+app.post('/oidc_token', async (req, res) => {
 
   console.log('/oidc_token ...')
   console.log('session is: ' + req.session.id)
-
-  let clientId = null
-  let clientSecret = null
 
   // check if the client uses http basic authorization
   let auth = req.headers['authorization']
@@ -523,8 +420,9 @@ app.post('/oidc_token', function(req, res) {
   }
 
   const clientCredentials = Buffer.from(auth.slice('basic '.length), 'base64').toString().split(':')
-  clientId = querystring.unescape(clientCredentials[0])
-  clientSecret = querystring.unescape(clientCredentials[1])
+
+  let clientId = querystring.unescape(clientCredentials[0])
+  let clientSecret = querystring.unescape(clientCredentials[1])
 
   const client = getClient(clientId)
 
@@ -595,8 +493,73 @@ app.post('/oidc_token', function(req, res) {
     return
   }
 
-  // no error, thus
-  const tokenResponse = generateTokens(clientId, sessionData.user.sub, sessionData.scope_granted)
+  // no error, thus build the token response
+  const userId = sessionData.user.sub
+  const scopeGranted = sessionData.scope_granted
+
+  const idTokenPayload = {
+    iss: 'http://localhost:9003/',
+    sub: userId,
+    aud: clientId,
+    jti: randomstring.generate(10),
+    scope: scopeGranted,
+    exp: Math.floor(Date.now() / 1000) + (5 * 60),
+    iat: Math.floor(Date.now() / 1000)
+  }
+
+  console.log('oidc id token payload is:')
+  console.log(idTokenPayload)
+
+  // JWS signature
+  const jwsPayload = JSON.stringify(idTokenPayload)
+
+  // read private key and sign. This creates the header as well
+  let key = await jose.JWK.asKey(privateKey, "pem")
+
+  // format: flattened or compact
+  let format = {
+    format: 'compact'
+  }
+
+  let idToken = await jose.JWS.createSign(format, key).update(jwsPayload).final()
+
+  console.log('Signed message is:')
+  console.log(idToken)
+
+  // build and store access token
+  const access_token = randomstring.generate(10)
+  mongoClient.connect('mongodb://127.0.0.1:27017/', function(err, db) {
+
+    if (err) {
+      throw err
+    }
+
+    let dbo = db.db(mongoOptions.instance.dbName)
+
+    dbo.collection('tokens').insertOne({
+        subject: userId,
+        client_id: clientId,
+        access_token: access_token,
+        id_token: idTokenPayload
+      },
+      function(err, result) {
+        if (err)
+          throw err
+        console.log(result)
+        db.close()
+      })
+  })
+
+  console.log('Issuing access token: %s', access_token)
+  console.log('and scope: %s', scopeGranted)
+
+  const tokenResponse = {
+    access_token: access_token,
+    token_type: 'Bearer',
+    scope: scopeGranted,
+    id_token: idToken
+  }
+
   res.status(200).json(tokenResponse)
   console.log('Issued access token for authorization code: %s', req.body.code)
   console.log('/oidc_token done.')
@@ -633,9 +596,7 @@ app.post('/oidc_userinfo', function(req, res) {
     let dbo = db.db(mongoOptions.instance.dbName)
 
     dbo.collection('tokens').findOne({
-
       "access_token": inToken
-
     }, function(err, token) {
 
       if (err) {
@@ -675,7 +636,24 @@ app.post('/oidc_userinfo', function(req, res) {
   })
 })
 
-// perform the required actions to logout
+// generate the JWT logout token
+const generateLogoutToken = function(clientId, userId) {
+
+  const token = {
+    iss: 'http://localhost:9003/',
+    sub: userId,
+    aud: clientId,
+    iat: Math.floor(Date.now() / 1000),
+    jti: randomstring.generate(10),
+    events: {
+      'http://schemas.openid.net/event/backchannel-logout': {}
+    }
+  }
+  return token
+}
+
+
+// perform the actions to logout
 async function logout(subject) {
 
   console.log('logout ...')
@@ -687,7 +665,6 @@ async function logout(subject) {
       if (err) {
         throw err;
       }
-      // query the token assigned to this user
       let dbo = db.db(mongoOptions.instance.dbName)
       dbo.collection('tokens').find({
         "subject": subject
@@ -699,16 +676,14 @@ async function logout(subject) {
         db.close()
       })
     })
-  }) // end promise
+  })
 
-  // snyc run the promise
   let tokens = await resolveTokens
 
-  let propagate = function(token) {
+  async function propagate(token) {
 
     return new Promise(function(resolve, reject) {
 
-      // TODO put to promize and use promiseAll
       let logoutClientId = token.client_id
       let logoutClient = getClient(logoutClientId)
 
@@ -718,11 +693,11 @@ async function logout(subject) {
           logout_token: generateLogoutToken(logoutClientId, subject)
         }).then(function(response) {
           console.log('Backchannel logout request send to client %s.', logoutClientId)
-          resolve ('OK')
+          resolve('OK')
         })
         .catch(function(error) {
           console.log('Error: Could not send logout to client %s (%s).', logoutClientId, logoutClient.description)
-          resolve ('Failed')
+          resolve('Failed')
         })
     })
   }
@@ -731,23 +706,20 @@ async function logout(subject) {
   let receivers = []
   tokens.forEach((token, i) => {
     receivers.push(propagate(token))
-  }) // end iterating the tokens
+  })
 
-  // asnc call all relying parties
+  // asnc call all relying parties in parallel
   Promise.all(receivers)
 
   // delete the assigned sessions
   let destroySessions = new Promise(function(resolve, reject) {
 
-    // query all token of the user
+    // delete all http sessions of the user
     mongoClient.connect('mongodb://127.0.0.1:27017/', function(err, db) {
-
       if (err) {
         throw err;
       }
-      // query the token assigned to this user
       let dbo = db.db(mongoOptions.instance.dbName)
-
       dbo.collection('sessions').deleteMany({
         "session.query.user.sub": subject
       }, function(err) {
@@ -758,23 +730,27 @@ async function logout(subject) {
         db.close()
       })
     })
-  }) // end promise
+  })
 
-  // sync execution of query
   await destroySessions
-
   console.log('logout done')
+}
+
+// verify signature: 'no key found' error means the signature is invalid.
+async function signatureValid(token) {
+  let key = await jose.JWK.asKey(publicKey, "pem")
+  let result = await jose.JWS.createVerify(key).verify(token)
+  console.log('verify: Signed message payload is:')
+  console.log(result.payload.toString())
+  return JSON.parse(result.payload.toString())
 }
 
 /**
  * The OpenID Connect logout
  **/
-app.get('/oidc_logout', function(req, res) {
+app.get('/oidc_logout', async (req, res) => {
 
   console.log('/oidc_logout ...')
-
-  console.log('Query is:')
-  console.log(req.query)
 
   let inToken = req.query.id_token_hint
 
@@ -787,20 +763,18 @@ app.get('/oidc_logout', function(req, res) {
     return
   }
 
-  let jwsPayload = getJWSPayload(inToken)
-  let subject = jwsPayload.sub
-  let clientId = jwsPayload.client_id
+  const payload = await signatureValid(inToken)
 
-  logout(subject)
+  logout(payload.sub)
 
   res.render('info', {
-    text: 'You are logged out.'
+    text: 'You are logged out. The OIDC provider deleted the id token' +
+      ' and all http sessions assigned to the user.'
   })
 
   console.log('/oidc_logout done.')
   return
 })
-
 
 app.use('/', express.static('files/oidcProvider'))
 

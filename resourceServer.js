@@ -4,7 +4,6 @@ const bodyParser = require('body-parser')
 const randomstring = require("randomstring")
 const cons = require('consolidate')
 const querystring = require('querystring')
-const jose = require('jsrsasign')
 const cors = require('cors')
 const axios = require('axios')
 const __ = require('underscore')
@@ -35,7 +34,7 @@ const resource = {
 app.options('/resource', cors())
 
 // the OAuth secured endpoint to fetch the resource
-app.post("/resource", cors(), function(req, res) {
+app.post("/resource", cors(), async (req, res) => {
 
   console.log('/resource ...')
 
@@ -43,15 +42,9 @@ app.post("/resource", cors(), function(req, res) {
   const auth = req.headers['authorization']
   let token = auth.slice('bearer '.length)
 
-  if (! iua.signatureValid(token)){
-    console.log('Error: Invalid token signature.')
-    res.status(400).render('error', {
-      error: 'Invalid token signature'
-    })
-    return
-  }
+  const payload = await iua.signatureValid(token)
 
-  let payload = iua.getJWSPayload(token)
+  console.log('Signature validated.')
 
   console.log('Access token payload is: ')
   console.log(JSON.stringify(payload, null, 2))

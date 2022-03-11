@@ -4,11 +4,13 @@ const url = require("url")
 const querystring = require('querystring')
 const cons = require('consolidate')
 const randomstring = require("randomstring")
-const jose = require('jsrsasign')
 const axios = require('axios')
 const session = require('express-session')
 const __ = require('underscore')
 __.string = require('underscore.string')
+
+const jose = require('node-jose')
+const fs = require('fs')
 
 const oidc = require('./module/oidcClient')
 const iua = require('./module/iuaClient')
@@ -77,7 +79,7 @@ app.get('/oidc_authenticate', function(req, res) {
 })
 
 // exchange the auth code to the access token via the backchannel
-app.get("/oidc_callback", function(req, res) {
+app.get("/oidc_callback", async (req, res) => {
   oidc.Callback(req, res, oidcClient)
 })
 
@@ -139,24 +141,16 @@ app.get('/iua_authorize', function(req, res) {
 })
 
 // called after access token retrieval
-let onAccessToken = function(req, res, response) {
+async function onAccessToken(req, res, response) {
 
   req.session.iua = {
     access_token: response.data.access_token,
     scope: response.data.scope
   }
 
-  if (!iua.signatureValid(req.session.iua.access_token)) {
-    console.log('Error: Invalid signature of token.')
-    res.render('error', {
-      error: 'Invalid signature of token'
-    })
-    console.log("/iua_callback done.")
-    return
-  }
+  const payload = await iua.signatureValid(req.session.iua.access_token)
 
   console.log('Signature validated.')
-  const payload = iua.getJWSPayload(req.session.iua.access_token)
 
   if (!iua.isValid(payload, iuaClient.client_id, iua.serverData().issuer)) {
     console.log('Error: Invalid token data.')
@@ -170,7 +164,7 @@ let onAccessToken = function(req, res, response) {
   // display IUA session data page in the user agent
   res.render('iua_info', {
     token: blockFormat(req.session.iua.access_token),
-    payload: iua.getJWSPayload(req.session.iua.access_token),
+    payload: payload,
     scope: req.session.iua.scope
   })
 }
