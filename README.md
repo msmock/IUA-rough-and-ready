@@ -4,7 +4,7 @@ Server and a Resource Server, all JavaScript from scratch with mininal dependenc
 educational and testing purposes.
 
 The project uses public and private keys in pem format for signing and signature validation.
-To run the apps these certifcates must be generated and stored to folder keys.  
+To run the apps these certifcates must be generated and stored to folder ./keys.  
 
 To test copy the code and run npm install to resolve the dependencies. Then run your
 terminal and:
