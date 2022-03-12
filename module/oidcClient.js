@@ -80,31 +80,6 @@ const serverData = function() {
   }
 }
 
-// display the local oidc session data
-const Info = function(req, res) {
-
-  console.log('/oidc_info ...')
-
-  if (req.session.oidc) {
-    res.render('oidc_info', {
-      access_token: req.session.oidc.access_token,
-      id_token: blockFormat(req.session.oidc.id_token),
-      payload: signatureValid(req.session.oidc.id_token),
-      scope: req.session.oidc.scope
-    })
-    console.log('/oidc_info done.')
-    return
-  }
-
-  // else
-  res.render('error', {
-    error: 'Session expired.'
-  })
-
-  console.log('/oidc_info done.')
-  return
-}
-
 // query the user info endpoint of the OIDC Provider
 const UserInfo = function(req, res) {
 
@@ -303,7 +278,6 @@ async function Callback(req, res, oidcClient) {
 // the export declaration
 module.exports = {
   serverData,
-  Info,
   Authenticate,
   Callback,
   UserInfo,

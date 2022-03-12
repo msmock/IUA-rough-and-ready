@@ -67,9 +67,6 @@ const iuaClient = {
   scope: 'openid read write purpose_of_use subject_role person_id'
 }
 
-// display OpenID Connect session data
-app.get('/oidc_info', oidc.Info);
-
 // display the OpenID Connect user info data of the current session
 app.get('/oidc_userinfo', oidc.UserInfo)
 

@@ -17,7 +17,7 @@ const publicKey = fs.readFileSync('./keys/iua/public-key.pem')
 
 // verify signature: 'no key found' error means the signature is invalid.
 async function signatureValid(token) {
-  
+
   console.log('signatureValid ...')
 
   let key = await jose.JWK.asKey(publicKey, "pem")
