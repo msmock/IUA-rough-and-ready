@@ -1,6 +1,7 @@
 {
    "dependencies": {
       "axios": "^0.25.0",
+      "base64url": "^3.0.1",
       "body-parser": "^1.19.1",
       "connect-mongodb-session": "^3.1.1",
       "consolidate": "^0.16.0",

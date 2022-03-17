@@ -15,6 +15,9 @@ const mongoClient = require('mongodb').MongoClient
 const jose = require('node-jose')
 const fs = require('fs')
 
+const crypto = require("crypto")
+const base64url = require("base64url")
+
 const app = express()
 
 // load the private key for signing
@@ -483,9 +486,13 @@ app.post('/oidc_token', async (req, res) => {
     return
   }
 
+  const code_verifier = req.body.code_verifier
+  const base64Digest = crypto.createHash("sha256").update(code_verifier).digest("base64")
+  const code_challenge = base64url.fromBase64(base64Digest)
+
   // verify the code challenge stored in session matches the code verifier
-  if (sessionData.code_challenge != req.body.code_verifier) {
-    console.log('Error: Invalid code verifier. Expected %s, got %s', sessionData.code_challenge, req.body.code_verifier)
+  if (sessionData.code_challenge != code_challenge) {
+    console.log('Error: Invalid code challenge. Expected %s, got %s', sessionData.code_challenge, code_challenge)
     res.status(400).json({
       error: 'Invalid code verifier'
     })

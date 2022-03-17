@@ -12,6 +12,9 @@ __.string = require('underscore.string')
 const jose = require('node-jose')
 const fs = require('fs')
 
+const crypto = require("crypto")
+const base64url = require("base64url")
+
 // load the public key of the OIDC provider signature verification
 const publicKey = fs.readFileSync('./keys/oidc/public-key.pem')
 
@@ -161,14 +164,10 @@ const Authenticate = function(req, res, oidcClient) {
 
   console.log("/Authenticate ...")
 
-  /**
-  TODO use code challenge method
-  *
-  from PKCE:
-  plain -> code_challenge = code_verifier
-  S256 -> code_challenge = BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
-  **/
-  let code_verifier = randomstring.generate(12)
+  const code_verifier = randomstring.generate(43)
+  const base64Digest = crypto.createHash("sha256").update(code_verifier).digest("base64")
+  const code_challenge = base64url.fromBase64(base64Digest)
+
   req.session.oidc = {
     code_verifier: code_verifier,
     request: {
@@ -176,8 +175,8 @@ const Authenticate = function(req, res, oidcClient) {
       client_id: oidcClient.clientId,
       redirect_uri: oidcClient.redirectUris[0],
       state: randomstring.generate(10),
-      code_challenge: code_verifier,
-      code_challenge_method: 'plain',
+      code_challenge: code_challenge,
+      code_challenge_method: 'S256',
       scope: oidcClient.scope
     }
   }

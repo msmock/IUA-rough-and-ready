@@ -173,7 +173,7 @@ const onUserInfo = function (req, res, userInfo){
     }
 
     let code_challenge = req.query.code_challenge
-    let code_challenge_method = req.query.code_challenge_method ? req.query.code_challenge_method : 'plain'
+    let code_challenge_method = req.query.code_challenge_method
 
     // else show page to resource owner to authorize scopes
     res.render('approve', {
@@ -437,12 +437,15 @@ app.post('/iua_token', async (req, res) => {
     return
   }
 
+  const code_verifier = req.body.code_verifier
+  const base64Digest = crypto.createHash("sha256").update(code_verifier).digest("base64")
+  const code_challenge = base64url.fromBase64(base64Digest)
+
   // verify the code challenge matches the code verifier
-  // TODO extend for other than plan code_challenge_methods
-  if (sessionData.request.code_challenge != req.body.code_verifier) {
-    console.log('Invalid code verifier. Expected %s, got %s', sessionData.request.code_challenge, req.body.code_verifier)
+  if (sessionData.request.code_challenge != code_challenge) {
+    console.log('Invalid code challenge. Expected %s, got %s', sessionData.request.code_challenge, code_challenge)
     res.status(400).json({
-      error: 'Invalid code verifier!'
+      error: 'Invalid code challenge!'
     })
     console.log('/iua_token done.')
     return

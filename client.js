@@ -12,6 +12,9 @@ __.string = require('underscore.string')
 const jose = require('node-jose')
 const fs = require('fs')
 
+const crypto = require("crypto")
+const base64url = require("base64url")
+
 const oidc = require('./module/oidcClient')
 const iua = require('./module/iuaClient')
 
@@ -102,14 +105,9 @@ app.get('/iua_authorize', function(req, res) {
 
   console.log("/iua_authorize ...")
 
-  /**
-  TODO use code challenge method
-  *
-  from PKCE:
-  plain -> code_challenge = code_verifier
-  S256 -> code_challenge = BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
-  **/
-  let code_verifier = randomstring.generate(80)
+  const code_verifier = randomstring.generate(43)
+  const base64Digest = crypto.createHash("sha256").update(code_verifier).digest("base64")
+  const code_challenge = base64url.fromBase64(base64Digest)
 
   req.session.iua = {
     code_verifier: code_verifier,
@@ -119,7 +117,7 @@ app.get('/iua_authorize', function(req, res) {
       redirect_uri: iuaClient.redirect_uris[0],
       state: randomstring.generate(10),
       code_challenge: code_verifier,
-      code_challenge_method: 'plain',
+      code_challenge_method: 'S256',
       scope: iuaClient.scope // TODO set the values for the epr scopes (purpose_of_use={...}, subject_role={...}, person_id=CX)
     }
   }
