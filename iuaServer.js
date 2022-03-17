@@ -12,6 +12,9 @@ __.string = require('underscore.string')
 const jose = require('node-jose')
 const fs = require('fs')
 
+const crypto = require("crypto")
+const base64url = require("base64url")
+
 const oidc = require('./module/oidcClient')
 
 const app = express()

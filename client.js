@@ -116,7 +116,7 @@ app.get('/iua_authorize', function(req, res) {
       client_id: iuaClient.client_id,
       redirect_uri: iuaClient.redirect_uris[0],
       state: randomstring.generate(10),
-      code_challenge: code_verifier,
+      code_challenge: code_challenge,
       code_challenge_method: 'S256',
       scope: iuaClient.scope // TODO set the values for the epr scopes (purpose_of_use={...}, subject_role={...}, person_id=CX)
     }
