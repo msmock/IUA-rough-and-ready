@@ -1,9 +1,9 @@
-const express = require("express")
+const express = require('express')
 const bodyParser = require('body-parser')
-const url = require("url")
+const url = require('url')
 const querystring = require('querystring')
 const cons = require('consolidate')
-const randomstring = require("randomstring")
+const randomstring = require('randomstring')
 const axios = require('axios')
 const session = require('express-session')
 const __ = require('underscore')
@@ -20,7 +20,7 @@ async function signatureValid(token) {
 
   console.log('signatureValid ...')
 
-  let key = await jose.JWK.asKey(publicKey, "pem")
+  let key = await jose.JWK.asKey(publicKey, 'pem')
   let result = await jose.JWS.createVerify(key).verify(token)
 
   console.log('verify: Signed message payload is:')
@@ -73,7 +73,6 @@ const serverData = function() {
 
 // the export declaration
 module.exports = {
-  // getJWSPayload,
   signatureValid,
   isValid,
   serverData

@@ -1,5 +1,5 @@
-const express = require("express")
-const url = require("url")
+const express = require('express')
+const url = require('url')
 const bodyParser = require('body-parser')
 const randomstring = require("randomstring")
 const cons = require('consolidate')
@@ -10,8 +10,11 @@ const __ = require('underscore')
 __.string = require('underscore.string')
 
 const iua = require('./module/iuaClient')
+const morgan = require('morgan')
 
+// create app
 const app = express()
+app.use(morgan('short'))
 
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({
@@ -34,7 +37,7 @@ const resource = {
 app.options('/resource', cors())
 
 // the OAuth secured endpoint to fetch the resource
-app.post("/resource", cors(), async (req, res) => {
+app.post('/resource', cors(), async (req, res) => {
 
   console.log('/resource ...')
 
@@ -77,7 +80,5 @@ app.post("/resource", cors(), async (req, res) => {
 
 // start the server
 const server = app.listen(9002, 'localhost', function() {
-  const host = server.address().address
-  const port = server.address().port
-  console.log('OAuth Resource Server is listening at http://%s:%s', host, port)
+  console.log('Resource Server is listening at http://%s:%s', server.address().address, server.address().port)
 })

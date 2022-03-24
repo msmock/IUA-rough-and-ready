@@ -8,22 +8,22 @@ const axios = require('axios')
 const session = require('express-session')
 const __ = require('underscore')
 __.string = require('underscore.string')
-
 const jose = require('node-jose')
 const fs = require('fs')
-
-const crypto = require("crypto")
-const base64url = require("base64url")
-
+const crypto = require('crypto')
+const base64url = require('base64url')
 const oidc = require('./module/oidcClient')
-
-const app = express()
+const morgan = require('morgan')
 
 // load the private key for signing
 const privateKey = fs.readFileSync('./keys/iua/private-key.pem')
 
 // container to cache request data from authorization to token request
 const iuaCache = {}
+
+// create app
+const app = express()
+app.use(morgan('short'))
 
 // session handling
 app.use(session({
@@ -117,7 +117,7 @@ app.get('/iua_authenticate', function(req, res) {
 })
 
 // The endpoint the user agent is redirected to by the OIDC Provider
-app.get("/oidc_callback", function(req, res) {
+app.get('/oidc_callback', function(req, res) {
   oidc.Callback(req, res, oidcClient)
 })
 
@@ -441,7 +441,7 @@ app.post('/iua_token', async (req, res) => {
   }
 
   const code_verifier = req.body.code_verifier
-  const base64Digest = crypto.createHash("sha256").update(code_verifier).digest("base64")
+  const base64Digest = crypto.createHash('sha256').update(code_verifier).digest('base64')
   const code_challenge = base64url.fromBase64(base64Digest)
 
   // verify the code challenge matches the code verifier
@@ -461,7 +461,7 @@ app.post('/iua_token', async (req, res) => {
   const tokenPayload = generateTokens(req, res, clientId, user, sessionData.scope)
 
   // read private key and sign. This creates the header as well
-  let key = await jose.JWK.asKey(privateKey, "pem")
+  let key = await jose.JWK.asKey(privateKey, 'pem')
 
   // format: flattened or compact
   let format = {
@@ -494,7 +494,5 @@ app.post('/iua_token', async (req, res) => {
 app.use('/', express.static('files/iuaServer'))
 
 const server = app.listen(9001, 'localhost', function() {
-  const host = server.address().address
-  const port = server.address().port
-  console.log('IUA Authorization Server is listening at http://%s:%s', host, port)
+  console.log('IUA Authorization Server is listening at http://%s:%s', server.address().address, server.address().port)
 })

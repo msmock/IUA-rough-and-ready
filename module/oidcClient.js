@@ -1,9 +1,9 @@
-const express = require("express")
+const express = require('express')
 const bodyParser = require('body-parser')
-const url = require("url")
+const url = require('url')
 const querystring = require('querystring')
 const cons = require('consolidate')
-const randomstring = require("randomstring")
+const randomstring = require('randomstring')
 const axios = require('axios')
 const session = require('express-session')
 const __ = require('underscore')
@@ -12,8 +12,8 @@ __.string = require('underscore.string')
 const jose = require('node-jose')
 const fs = require('fs')
 
-const crypto = require("crypto")
-const base64url = require("base64url")
+const crypto = require('crypto')
+const base64url = require('base64url')
 
 // load the public key of the OIDC provider signature verification
 const publicKey = fs.readFileSync('./keys/oidc/public-key.pem')
@@ -32,7 +32,7 @@ blockFormat = function(s) {
 
 // verify signature: 'no key found' error means the signature is invalid.
 async function signatureValid(token) {
-  let key = await jose.JWK.asKey(publicKey, "pem")
+  let key = await jose.JWK.asKey(publicKey, 'pem')
   let result = await jose.JWS.createVerify(key).verify(token)
   console.log('verify: Signed message payload is:')
   console.log(result.payload.toString())
@@ -162,10 +162,10 @@ const Logout = function(req, res) {
 
 const Authenticate = function(req, res, oidcClient) {
 
-  console.log("/Authenticate ...")
+  console.log('/Authenticate ...')
 
   const code_verifier = randomstring.generate(43)
-  const base64Digest = crypto.createHash("sha256").update(code_verifier).digest("base64")
+  const base64Digest = crypto.createHash('sha256').update(code_verifier).digest('base64')
   const code_challenge = base64url.fromBase64(base64Digest)
 
   req.session.oidc = {
@@ -190,14 +190,14 @@ const Authenticate = function(req, res, oidcClient) {
   console.log(url.format(authenticateUrl))
   res.redirect(url.format(authenticateUrl))
 
-  console.log("/Authenticate done.")
+  console.log('/Authenticate done.')
 }
 
 // called from OIDC Provider with authorization token. Exchanges the
 // authorization token to the access token by calling the OIDC Provider tokenURL
 async function Callback(req, res, oidcClient) {
 
-  console.log("/Callback ...")
+  console.log('/Callback ...')
 
   // error handling
   if (req.query.error) {
@@ -259,7 +259,7 @@ async function Callback(req, res, oidcClient) {
     res.render('error', {
       error: 'Invalid token data'
     })
-    console.log("/Callback done.")
+    console.log('/Callback done.')
     return
   }
   // return page to display the OpenID Connect session data
@@ -270,7 +270,7 @@ async function Callback(req, res, oidcClient) {
     scope: req.session.oidc.scope
   })
 
-  console.log("/Callback done.")
+  console.log('/Callback done.')
 
 }
 

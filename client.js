@@ -1,9 +1,9 @@
-const express = require("express")
+const express = require('express')
 const bodyParser = require('body-parser')
-const url = require("url")
+const url = require('url')
 const querystring = require('querystring')
 const cons = require('consolidate')
-const randomstring = require("randomstring")
+const randomstring = require('randomstring')
 const axios = require('axios')
 const session = require('express-session')
 const __ = require('underscore')
@@ -12,13 +12,17 @@ __.string = require('underscore.string')
 const jose = require('node-jose')
 const fs = require('fs')
 
-const crypto = require("crypto")
-const base64url = require("base64url")
+const crypto = require('crypto')
+const base64url = require('base64url')
 
 const oidc = require('./module/oidcClient')
 const iua = require('./module/iuaClient')
 
+const morgan = require('morgan')
+
+// create app
 const app = express()
+app.use(morgan('short'))
 
 // session handling
 app.use(session({
@@ -79,7 +83,7 @@ app.get('/oidc_authenticate', function(req, res) {
 })
 
 // exchange the auth code to the access token via the backchannel
-app.get("/oidc_callback", async (req, res) => {
+app.get('/oidc_callback', async (req, res) => {
   oidc.Callback(req, res, oidcClient)
 })
 
@@ -103,10 +107,10 @@ app.get('/iua_info', function(req, res) {
 // redirects the user agent to the IUA authorization endpoint to request the IUA authorization code.
 app.get('/iua_authorize', function(req, res) {
 
-  console.log("/iua_authorize ...")
+  console.log('/iua_authorize ...')
 
   const code_verifier = randomstring.generate(43)
-  const base64Digest = crypto.createHash("sha256").update(code_verifier).digest("base64")
+  const base64Digest = crypto.createHash('sha256').update(code_verifier).digest('base64')
   const code_challenge = base64url.fromBase64(base64Digest)
 
   req.session.iua = {
@@ -132,7 +136,7 @@ app.get('/iua_authorize', function(req, res) {
 
   res.redirect(url.format(authorizeUrl))
 
-  console.log("/iua_authorize done")
+  console.log('/iua_authorize done')
 })
 
 // called after access token retrieval
@@ -152,7 +156,7 @@ async function onAccessToken(req, res, response) {
     res.render('error', {
       error: 'Invalid token data'
     })
-    console.log("/iua_callback done.")
+    console.log('/iua_callback done.')
     return
   }
 
@@ -225,20 +229,20 @@ app.get('/iua_callback', function(req, res) {
       console.log('received response data:')
       console.log(response.data)
       onAccessToken(req, res, response)
-      console.log("/iua_callback done.")
+      console.log('/iua_callback done.')
 
     })
     .catch(function(error) {
       console.log(error)
       res.status(401).end()
-      console.log("/iua_callback done.")
+      console.log('/iua_callback done.')
     })
 })
 
 // backchannel call to query the resource server
 app.get('/iua_fetch_resource', function(req, res) {
 
-  console.log("/iua_fetch_resource")
+  console.log('/iua_fetch_resource')
 
   if (!req.session.iua || !req.session.iua.access_token) {
     console.log('Error: IUA session is expired.')
@@ -287,7 +291,5 @@ app.get('/', function(req, res) {
 app.use('/', express.static('files/client'))
 
 const server = app.listen(9000, 'localhost', function() {
-  const host = server.address().address
-  const port = server.address().port
-  console.log('OAuth Client is listening at http://%s:%s', host, port)
+  console.log('OAuth Client is listening at http://%s:%s', server.address().address, server.address().port)
 })

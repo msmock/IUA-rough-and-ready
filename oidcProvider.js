@@ -8,17 +8,13 @@ const __ = require('underscore')
 __.string = require('underscore.string')
 const session = require('express-session')
 const axios = require('axios')
-
 const mongo = require('mongodb-memory-server')
 const mongoClient = require('mongodb').MongoClient
-
 const jose = require('node-jose')
 const fs = require('fs')
-
-const crypto = require("crypto")
-const base64url = require("base64url")
-
-const app = express()
+const crypto = require('crypto')
+const base64url = require('base64url')
+const morgan = require('morgan')
 
 // load the private key for signing
 const privateKey = fs.readFileSync('./keys/oidc/private-key.pem')
@@ -57,6 +53,10 @@ var store = new MongoDBStore({
 store.on('error', function(error) {
   console.log('State Error: %s', error);
 })
+
+// create app
+const app = express()
+app.use(morgan('short'))
 
 // session handling
 app.use(session({
@@ -255,7 +255,7 @@ app.post('/oidc_authorize', function(req, res) {
   req.session.query.user = user
 
   if (!user) {
-    console.log("Error: Unknown user " + username)
+    console.log('Error: Unknown user ' + username)
     res.render('error', {
       error: 'Invalid credentials'
     })
@@ -487,7 +487,7 @@ app.post('/oidc_token', async (req, res) => {
   }
 
   const code_verifier = req.body.code_verifier
-  const base64Digest = crypto.createHash("sha256").update(code_verifier).digest("base64")
+  const base64Digest = crypto.createHash('sha256').update(code_verifier).digest('base64')
   const code_challenge = base64url.fromBase64(base64Digest)
 
   // verify the code challenge stored in session matches the code verifier
@@ -521,7 +521,7 @@ app.post('/oidc_token', async (req, res) => {
   const jwsPayload = JSON.stringify(idTokenPayload)
 
   // read private key and sign. This creates the header as well
-  let key = await jose.JWK.asKey(privateKey, "pem")
+  let key = await jose.JWK.asKey(privateKey, 'pem')
 
   // format: flattened or compact
   let format = {
@@ -603,7 +603,7 @@ app.post('/oidc_userinfo', function(req, res) {
     let dbo = db.db(mongoOptions.instance.dbName)
 
     dbo.collection('tokens').findOne({
-      "access_token": inToken
+      'access_token': inToken
     }, function(err, token) {
 
       if (err) {
@@ -674,7 +674,7 @@ async function logout(subject) {
       }
       let dbo = db.db(mongoOptions.instance.dbName)
       dbo.collection('tokens').find({
-        "subject": subject
+        'subject': subject
       }).toArray(function(err, tokens) {
         if (err) {
           throw err;
@@ -728,7 +728,7 @@ async function logout(subject) {
       }
       let dbo = db.db(mongoOptions.instance.dbName)
       dbo.collection('sessions').deleteMany({
-        "session.query.user.sub": subject
+        'session.query.user.sub': subject
       }, function(err) {
         if (err) {
           throw err;
@@ -745,7 +745,7 @@ async function logout(subject) {
 
 // verify signature: 'no key found' error means the signature is invalid.
 async function signatureValid(token) {
-  let key = await jose.JWK.asKey(publicKey, "pem")
+  let key = await jose.JWK.asKey(publicKey, 'pem')
   let result = await jose.JWS.createVerify(key).verify(token)
   console.log('verify: Signed message payload is:')
   console.log(result.payload.toString())
@@ -786,7 +786,5 @@ app.get('/oidc_logout', async (req, res) => {
 app.use('/', express.static('files/oidcProvider'))
 
 const server = app.listen(9003, 'localhost', function() {
-  const host = server.address().address
-  const port = server.address().port
-  console.log('OpenID Connect Server is listening at http://%s:%s', host, port)
+  console.log('OpenID Connect Server is listening at http://%s:%s', server.address().address, server.address().port)
 })
