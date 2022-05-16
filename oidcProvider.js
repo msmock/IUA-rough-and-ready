@@ -616,12 +616,23 @@ app.post('/oidc_userinfo', function(req, res) {
         return
       }
 
+      if (token == null){
+        console.log('Error: No matching token found.')
+        res.status(400).json({
+          error: 'Unauthorized access. No matching token found in store.'
+        })
+        console.log('/oidc_userinfo done.')
+        db.close()
+        return
+      }
+
       console.log('We found a matching token:')
       console.log(token)
 
       // TODO check token lifetime
 
       var user = findUserBySub(token.subject)
+
       if (!user) {
         console.log('Error: No user assigned to matching token.')
         res.status(400).json({

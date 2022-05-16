@@ -199,6 +199,14 @@ app.get('/iua_authorize', function(req, res) {
     query: req.query
   }
 
+  // check if we have a oidc session
+  if (!req.session.oidc){
+    res.render('error', {
+      error: "User is not authenticated. Please authenticate first."
+    });
+    return
+  }
+
   // get the user from OIDC user info url
   console.log('Making user info request ...')
 

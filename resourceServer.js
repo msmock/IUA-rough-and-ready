@@ -71,7 +71,7 @@ app.post('/resource', cors(), async (req, res) => {
     return
   }
 
-  // TODO policy enforcement comes here
+  // policy enforcement comes here
 
   console.log('Return requested resource.')
   res.status(200).json(resource)

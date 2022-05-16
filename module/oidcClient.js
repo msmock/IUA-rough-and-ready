@@ -132,10 +132,13 @@ const LogoutRequest = function(req, res) {
   const authenticateUrl = url.parse(serverData().logoutURL, true)
   delete authenticateUrl.search // this is to get around odd behavior in the node URL library
 
+  // TODO: we don't have a token hint, if we only authenticated via the IUA server
+  // in this case we must logout at the IUA server (i.e. discard the iua session)
+
   // set query parameter state and id_token_hint
   authenticateUrl.query = {
     state: randomstring.generate(10),
-    id_token_hint: req.session.oidc.id_token
+    id_token_hint: (req.session.oidc != null) ? req.session.oidc.id_token : null
   }
 
   console.log('URL call to OpenID Connect server:')
@@ -154,7 +157,7 @@ const Logout = function(req, res) {
   console.log('Logout called by OIDC Provider with body:')
   console.log(req.body)
 
-  // TODO logout action shall be implemented here
+  // logout action shall be implemented here
 
   console.log('/Logout done.')
   return

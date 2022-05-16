@@ -9,7 +9,7 @@ To run the apps these certifcates must be generated and stored to folder ./keys.
 To test copy the code and run npm install to resolve the dependencies. Then run your
 terminal and:
 - node client,
-- node oidcServer,
+- node oidcProvider,
 - node iuaServer,
 - node resourceServer.
 
