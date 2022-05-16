@@ -204,14 +204,14 @@ app.get('/iua_authorize', function(req, res) {
     res.render('error', {
       error: "User is not authenticated. Please authenticate first."
     });
-    return
+    return;
   }
 
   // get the user from OIDC user info url
-  console.log('Making user info request ...')
+  console.log('Making user info request ...');
 
-  axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded'
-  axios.defaults.headers.common['Authorization'] = 'Bearer ' + req.session.oidc.access_token
+  axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
+  axios.defaults.headers.common['Authorization'] = 'Bearer ' + req.session.oidc.access_token;
 
   axios.post(oidc.serverData().userinfoEndpoint).then(function(response) {
       console.log('User info response:')
@@ -225,8 +225,8 @@ app.get('/iua_authorize', function(req, res) {
       })
     })
 
-  console.log('/iua_authorize done.')
-  return
+  console.log('/iua_authorize done.');
+  return;
 })
 
 // present the UI to authorize client applications
