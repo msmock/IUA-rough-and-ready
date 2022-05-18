@@ -134,11 +134,19 @@ const LogoutRequest = function(req, res) {
 
   // TODO: we don't have a token hint, if we only authenticated via the IUA server
   // in this case we must logout at the IUA server (i.e. discard the iua session)
+  if (req.session.oidc == null){
+    let msg = 'The user has no OIDC session on this client application. Thus, we are unable to logout from OIDC provider.';
+    console.log(msg);
+    res.render('error', {
+      error: msg
+    })
+    return
+  }
 
   // set query parameter state and id_token_hint
   authenticateUrl.query = {
     state: randomstring.generate(10),
-    id_token_hint: (req.session.oidc != null) ? req.session.oidc.id_token : null
+    id_token_hint: req.session.oidc.id_token
   }
 
   console.log('URL call to OpenID Connect server:')
